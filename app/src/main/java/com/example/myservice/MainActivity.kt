@@ -1,12 +1,31 @@
 package com.example.myservice
 
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
+import android.content.ServiceConnection
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.IBinder
 import android.view.View
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity(), View.OnClickListener {
+
+    private var mServiceBound = false
+    private lateinit var mBoundService: MyBoundService
+
+    private val mServiceConnection = object : ServiceConnection {
+        override fun onServiceDisconnected(p0: ComponentName?) {
+            mServiceBound = false
+        }
+
+        override fun onServiceConnected(p0: ComponentName?, p1: IBinder) {
+            val myBinder = p1 as MyBoundService.MyBinder
+            mBoundService = myBinder.getService
+            mServiceBound = true
+        }
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -31,12 +50,20 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
             }
 
             R.id.btn_start_bound_service -> {
-
+                val mBoundServiceIntent = Intent(this@MainActivity, MyBoundService::class.java)
+                bindService(mBoundServiceIntent, mServiceConnection, Context.BIND_AUTO_CREATE)
             }
 
             R.id.btn_stop_bound_service -> {
-
+                unbindService(mServiceConnection)
             }
+        }
+    }
+    override fun onDestroy() {
+        super.onDestroy()
+
+        if (mServiceBound) {
+            unbindService(mServiceConnection)
         }
     }
 }
